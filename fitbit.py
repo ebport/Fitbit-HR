@@ -36,12 +36,18 @@ def main():
         print(extract['params'])
         r = requests.get(extract['url'].format(**extract['params']), headers=headers)
         print(r.status_code)
-        with open(os.path.join(fitbit_config.output_dir, extract['output_file']), 'w+') as f:
+        data_file = os.path.join(fitbit_config.output_dir, extract['output_file'])
+        with open(data_file, 'w+') as f:
             json.dump(r.json(), f)
             print('successfully wrote: ' + f.name)
 
-    # flatten time series
-
+        # flatten time series
+        with open(data_file, 'r') as f:
+            json_data = json.load(f)
+        flattened = extract['flatten_func'](json_data)
+        with open(os.path.join(fitbit_config.output_dir, extract['flattened_file']), 'w') as f:
+            for row in flattened:
+                f.write(','.join(str(e) for e in row) + '\n')
 
 def flatten_json(input_file, output_file, schema):
     # Read File
@@ -82,11 +88,11 @@ class FitBitAuthHandler():
         auth = requests.auth.HTTPBasicAuth(self.client_id, self.client_secret)
         r = requests.post(self.oauth_uri, auth=auth, params=self.auth_params)
         print(r.status_code)
-        with open('fitbit.html', 'w') as f:
+        with open(fitbit_config.html_loc, 'w') as f:
             f.write(r.text)
         if os.path.isfile('auth_code.txt'):
             os.remove('auth_code.txt')
-        webbrowser.open_new('file:///home/eporter/fitbit.html')
+        webbrowser.open_new(fitbit_config.html_loc)
         while not os.path.isfile('auth_code.txt'):
             time.sleep(1)
         with open('auth_code.txt') as f:
