@@ -1,0 +1,6 @@
+fitbit_data/*
+fitbit.html
+keys.py
+auth_code.txt
+access_token.json
+__pycache__/*
