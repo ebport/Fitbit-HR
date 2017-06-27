@@ -30,8 +30,8 @@ def flatten_hr_intraday(hr_json):
 extracts = [{
 'url': 'https://api.fitbit.com/1/user/-/activities/heart/date/{date}/{end-date}/{detail-level}.json',
 'params': {
-    'date': '2017-05-31',
-    'end-date': '2017-05-31',
+    'date': 'today',
+    'end-date': 'today',
     'detail-level': '1min'},
 'output_file': 'hr.json',
 'flatten_func': flatten_hr_intraday,

@@ -2,20 +2,21 @@
 
 # to open source envs/base/bin/activate
 
-import webbrowser
+import json
 import os
+import sys
 import threading
 import time
-import json
+import webbrowser
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from functools import partial
 from urllib.parse import urlparse, parse_qs
 import requests
-import pandas
 import fitbit_config
 
 
-def main():
+def main(dt, detail):
+
     # start server for auth responses
     thread = threading.Thread(target = partial(run, port=1410))
     thread.daemon = True
@@ -32,8 +33,11 @@ def main():
         os.mkdir(fitbit_config.output_dir)
     for extract in fitbit_config.extracts:
         print('making request for:\n' + str(extract))
-        print(extract['url'])
-        print(extract['params'])
+        if dt:
+            extract['params']['date'] = dt
+            extract['params']['end-date'] = dt
+        if detail:
+            extract['params']['detail-level'] = detail
         r = requests.get(extract['url'].format(**extract['params']), headers=headers)
         print(r.status_code)
         data_file = os.path.join(fitbit_config.output_dir, extract['output_file'])
@@ -48,15 +52,7 @@ def main():
         with open(os.path.join(fitbit_config.output_dir, extract['flattened_file']), 'w') as f:
             for row in flattened:
                 f.write(','.join(str(e) for e in row) + '\n')
-
-def flatten_json(input_file, output_file, schema):
-    # Read File
-    with open(input_file, 'r') as f:
-        input_dict = json.load(f)
-    # Determine dict shape
-    flattened_df = pandas.io.json.json_normalize()
-    # Write output
-    flattened_df.to_csv(os.path.join(fitbit_config.output_dir, output_file))
+            print('successfully wrote: ' + f.name)
 
 
 class FitBitAuthHandler():
@@ -68,7 +64,7 @@ class FitBitAuthHandler():
         self.token_uri = fitbit_config.token_uri
         self.scope = fitbit_config.scope
         self.redirect_uri = fitbit_config.callback_url
-        self.expires_in = 86400
+        self.expires_in = 2592000
         self.response_type = 'code'
         self.auth_params = {'response_type': self.response_type,
                         'client_id': str(self.client_id),
@@ -95,7 +91,7 @@ class FitBitAuthHandler():
         webbrowser.open_new(fitbit_config.html_loc)
         while not os.path.isfile('auth_code.txt'):
             time.sleep(1)
-        with open('auth_code.txt') as f:
+        with open('auth_code.txt', 'r') as f:
             auth_code = f.read()
         return auth_code
 
@@ -142,4 +138,15 @@ def run(server_class=HTTPServer, handler_class=S, port=80):
 
 
 if __name__ == '__main__':
-    main()
+    try:
+        dt = sys.argv[1]
+    except IndexError:
+        dt = None
+
+    try:
+        detail = sys.argv[2]
+    except IndexError:
+        detail = None
+
+    print(dt, detail)
+    main(dt, detail)
